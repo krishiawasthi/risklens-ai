@@ -1,0 +1,12 @@
+# Streamlit theme for RiskLens. Streamlit reads this file when you run
+# `python -m streamlit run app.py` from the project folder.
+# The accent colour (buttons, toggles, filter tags, selected tab, score bars)
+# is set for the light and dark themes separately, so the app still follows
+# the computer's light or dark mode.
+[theme.light]
+primaryColor = "#0f766e"
+
+[theme.dark]
+# A slightly brighter teal so selected tabs and labels stay readable on the
+# dark background (5.0:1), while white button text keeps 3.7:1.
+primaryColor = "#0d9488"

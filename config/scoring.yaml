@@ -1,0 +1,157 @@
+# RiskLens scoring configuration
+#
+# Every number in this file is an ASSUMPTION chosen for a prototype.
+# None of them is an industry standard. Change them here, not in the code.
+#
+# Score = likelihood x impact x category weight
+# With 1-5 scales and weight 1.0, the maximum score is 25.
+
+likelihood_scale:
+  min: 1
+  max: 5
+
+impact_scale:
+  min: 1
+  max: 5
+
+# Raise a weight above 1.0 to make a category count more in the ranking.
+category_weights:
+  business_continuity: 1.0
+  cybersecurity: 1.0
+  third_party: 1.0
+  compliance: 1.0
+  governance: 1.0
+  financial_resilience: 1.0
+
+# Checked from the top down. The first band whose min_score is met wins.
+# The last band must have min_score 0 so every score gets a priority.
+priority_bands:
+  - name: High
+    min_score: 15
+  - name: Medium
+    min_score: 8
+  - name: Low
+    min_score: 0
+
+# Deterministic financial rules. Each rule lists fixed follow-up questions
+# (written by a person, not generated). A rule fires when:
+#   metric <operator> threshold
+# If the metric could not be calculated (missing data), the rule is
+# reported as "not assessed". It never fires on a guessed value.
+#
+# Caution: these thresholds suit typical non-financial companies.
+# Banks and insurers have different balance sheets, so ratios such as
+# the current ratio are not meaningful for them.
+financial_rules:
+  - id: current_ratio_low
+    title: Current liabilities exceed current assets
+    metric: current_ratio
+    operator: "<"
+    threshold: 1.0
+    likelihood: 3
+    impact: 4
+    follow_up_questions:
+      - "How will short-term obligations be met, and what committed credit facilities are available?"
+      - "Are there assets classified as non-current that management treats as available liquidity?"
+
+  - id: high_leverage
+    title: Total liabilities are more than three times equity
+    metric: liabilities_to_equity
+    operator: ">"
+    threshold: 3.0
+    likelihood: 3
+    impact: 3
+    follow_up_questions:
+      - "What debt covenants apply, and how much headroom exists against them?"
+      - "Is the low equity base driven by losses, or by share buybacks and dividends?"
+
+  - id: negative_equity
+    title: Stockholders' equity is negative
+    metric: stockholders_equity
+    operator: "<"
+    threshold: 0
+    likelihood: 4
+    impact: 4
+    follow_up_questions:
+      - "What caused equity to turn negative, and is there a plan to restore it?"
+      - "Do any lenders, regulators or counterparties have rights triggered by negative equity?"
+
+  - id: weak_interest_coverage
+    title: Operating income covers interest expense less than three times
+    metric: interest_coverage
+    operator: "<"
+    threshold: 3.0
+    likelihood: 3
+    impact: 4
+    follow_up_questions:
+      - "How sensitive is interest cost to rate changes or refinancing in the next 12 months?"
+      - "Which debt maturities fall due in the next two years, and how will they be refinanced?"
+
+  - id: loss_making
+    title: Net loss for the period
+    metric: net_margin
+    operator: "<"
+    threshold: 0
+    likelihood: 4
+    impact: 3
+    follow_up_questions:
+      - "Which business units drive the loss, and is it expected to continue?"
+      - "Has the loss affected investment in controls, systems or staffing?"
+
+  - id: negative_operating_cash_flow
+    title: Operating cash flow is negative
+    metric: ocf_to_current_liabilities
+    operator: "<"
+    threshold: 0
+    likelihood: 4
+    impact: 4
+    follow_up_questions:
+      - "How long can current cash and facilities fund operations at this burn rate?"
+      - "What cost or working capital actions are planned, and who owns them?"
+
+  - id: revenue_decline
+    title: Revenue fell by more than 10% versus the prior period
+    metric: revenue_growth
+    operator: "<"
+    threshold: -0.10
+    likelihood: 3
+    impact: 4
+    follow_up_questions:
+      - "Which products, customers or regions explain the decline?"
+      - "Has the decline changed supplier, staffing or capacity commitments?"
+
+# ---------------------------------------------------------------------------
+# Stage 3: AI-assisted extraction
+# ---------------------------------------------------------------------------
+
+# A quote shorter than this cannot count as evidence. Stops one- or two-word
+# "quotes" such as "cybersecurity" from passing verification.
+evidence:
+  min_quote_words: 6
+
+# Confidence is computed from VERIFIED evidence. The AI is never asked to
+# rate its own confidence. Count = number of different paragraphs that
+# supplied at least one verified quote.
+#   High:   >= high_min_paragraphs,
+#           or >= high_min_paragraphs_if_corroborated when a deterministic
+#           financial rule in the same category also fired
+#   Medium: >= medium_min_paragraphs
+#   Low:    1 paragraph
+#   0 verified paragraphs: the finding is rejected, not shown in the register
+confidence:
+  high_min_paragraphs: 3
+  high_min_paragraphs_if_corroborated: 2
+  medium_min_paragraphs: 2
+
+# How much text goes to Gemini per call. 60,000 characters is roughly
+# 15,000 tokens. Larger batches mean fewer calls but less focused reading.
+extraction:
+  max_chars_per_batch: 60000
+  max_findings_per_batch: 6
+  # Which Items of the filing are sent to Gemini. More Items means more
+  # coverage but more tokens and API calls.
+  # 10-K options: 1 (Business), 1A, 1C, 3 (Legal), 7 (MD&A), 9A (Controls)
+  # 10-Q options: 1 (Legal), 1A, 2 (MD&A), 4 (Controls)
+  sections:
+    10-K: ["1A", "1C", "3", "9A"]
+    10-Q: ["1A", "1", "4"]
