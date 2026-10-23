@@ -2,8 +2,9 @@
 
 Run from the project folder:  python -m streamlit run app.py
 
+All controls sit on the main page (no sidebar), so the app works on phones.
 Results are saved to outputs/ after every run and can be reopened from the
-sidebar, so a demo does not depend on SEC or Gemini being available. Runs
+"Open a saved run" box, so a demo does not depend on SEC or Gemini being available. Runs
 placed in demo_runs/ are always listed and cost nothing to open.
 
 When RISKLENS_ACCESS_CODE is set (recommended for a public deployment), new
@@ -74,10 +75,11 @@ def page_surface() -> str:
     except Exception:
         return "#ffffff"
 
-st.set_page_config(page_title="RiskLens AI", page_icon=":material/shield:", layout="wide")
+st.set_page_config(page_title="RiskLens AI", page_icon=":material/shield:", layout="wide",
+                   initial_sidebar_state="collapsed")
 
 
-# ---------------------------------------------------------------- sidebar
+# ---------------------------------------------------------------- controls
 
 def saved_runs():
     """Demo runs first, then this server's own saved runs (newest first)."""
@@ -129,27 +131,33 @@ def run_new_analysis(ticker: str, form: str, use_ai: bool) -> None:
         st.error(str(e))
 
 
-with st.sidebar:
-    st.header("RiskLens AI")
-    st.caption("Corporate risk intelligence from SEC filings. Prototype.")
+def control_panel() -> None:
+    """Company, filing and AI choices, then saved runs. Shown on the main page
+    so they are visible on a phone. Columns stack automatically on narrow
+    screens. Widget keys keep the choices when the panel moves into the
+    collapsed "Analyse another company" box after a run."""
     options = company_options()
-    if options:
-        default = next((i for i, o in enumerate(options) if o.startswith("AAPL · ")), 0)
-        choice = st.selectbox(
-            "Company", options, index=default, filter_mode="contains",
-            help="Type a company name or ticker to search every company in SEC's ticker list.",
-        )
-        ticker = ticker_from_choice(choice)
-    else:
-        ticker = st.text_input("Company ticker", value="AAPL", max_chars=10)
-    form = st.segmented_control("Filing", ["10-K", "10-Q", "20-F"], default="10-K", required=True,
-                                help="10-K: US annual report. 10-Q: US quarterly report. 20-F: annual report of a "
-                                     "foreign company. Choosing 10-K for a foreign company uses its 20-F automatically.")
-    use_ai = st.toggle("AI risk extraction (Gemini)", value=not ACCESS_CODE,
+    c1, c2 = st.columns([3, 2])
+    with c1:
+        if options:
+            default = next((i for i, o in enumerate(options) if o.startswith("AAPL · ")), 0)
+            choice = st.selectbox(
+                "Company", options, index=default, filter_mode="contains", key="company",
+                help="Type a company name or ticker to search every company in SEC's ticker list.",
+            )
+            ticker = ticker_from_choice(choice)
+        else:
+            ticker = st.text_input("Company ticker", value="AAPL", max_chars=10, key="ticker")
+    with c2:
+        form = st.segmented_control("Filing", ["10-K", "10-Q", "20-F"], default="10-K", required=True, key="form",
+                                    help="10-K: US annual report. 10-Q: US quarterly report. 20-F: annual report "
+                                         "of a foreign company. Choosing 10-K for a foreign company uses its 20-F "
+                                         "automatically.")
+    use_ai = st.toggle("AI risk extraction (Gemini)", value=not ACCESS_CODE, key="use_ai",
                        help="Off: SEC retrieval and financial rules only. Free and needs no Gemini key.")
     code = ""
     if use_ai and ACCESS_CODE:
-        code = st.text_input("Access code for AI analysis", type="password",
+        code = st.text_input("Access code for AI analysis", type="password", key="code",
                              help="AI runs use the owner's Gemini quota. Switch AI off for a free run, "
                                   "or open a demo run below.")
     if st.button("Run analysis", type="primary", width="stretch"):
@@ -160,18 +168,20 @@ with st.sidebar:
                        "financial analysis, or open a demo run below.")
         else:
             run_new_analysis(ticker.strip(), form, use_ai)
+            if "result" in st.session_state:
+                st.rerun()  # redraw with the panel collapsed above the results
 
-    st.divider()
     runs = saved_runs()
     if runs:
-        choice = st.selectbox("Or open a saved run", runs, format_func=run_label)
-        if st.button("Open saved run", width="stretch"):
+        st.markdown("**Or open a saved run** (demo runs are free and instant)")
+        r1, r2 = st.columns([3, 1], vertical_alignment="bottom")
+        choice = r1.selectbox("Saved run", runs, format_func=run_label, label_visibility="collapsed")
+        if r2.button("Open saved run", width="stretch"):
             try:
                 st.session_state["result"] = pipeline.load_result(choice)
+                st.rerun()
             except Exception as e:  # corrupted or outdated file
                 st.error(f"Could not open {choice.name}: {e}")
-    else:
-        st.caption("Saved runs will appear here.")
 
 
 # ---------------------------------------------------------------- charts
@@ -237,17 +247,22 @@ def header(result):
                 st.markdown(f"- {md_escape(w)}")
 
 
+CARD_WIDTH = 150  # pixels; two cards fit side by side on a 390px phone screen
+
+
 def kpis(rows, result, config):
+    """Summary cards in a row that wraps (two or three per line on a phone)
+    instead of stacking six full-width cards."""
     counts = priority_counts(rows, config)
-    cols = st.columns(len(counts) + 3)
-    for col, (name, n) in zip(cols, counts.items()):
-        col.metric(f"{name} priority", n, border=True)
     x = result.extraction
-    cols[-3].metric("AI verified", len(x.findings) if x else "not run", border=True)
-    cols[-2].metric("AI rejected", len(x.rejected) if x else "not run", border=True,
-                    help="AI findings rejected because no quotation could be verified against the filing.")
-    cols[-1].metric("Not assessed", len(result.not_assessed), border=True,
-                    help="Financial rules not assessed because required figures were not reported. Nothing is estimated.")
+    with st.container(horizontal=True, gap="small"):
+        for name, n in counts.items():
+            st.metric(f"{name} priority", n, border=True, width=CARD_WIDTH)
+        st.metric("AI verified", len(x.findings) if x else "not run", border=True, width=CARD_WIDTH)
+        st.metric("AI rejected", len(x.rejected) if x else "not run", border=True, width=CARD_WIDTH,
+                  help="AI findings rejected because no quotation could be verified against the filing.")
+        st.metric("Not assessed", len(result.not_assessed), border=True, width=CARD_WIDTH,
+                  help="Financial rules not assessed because required figures were not reported. Nothing is estimated.")
 
 
 def register_tab(rows, config, result):
@@ -420,12 +435,19 @@ result = st.session_state.get("result")
 if result is None:
     st.title("RiskLens AI")
     st.markdown(
-        "Choose a US-listed company and select **Run analysis**. RiskLens fetches the latest 10-K, 10-Q or 20-F "
-        "from SEC EDGAR, calculates financial indicators from its XBRL data, extracts operational risk "
-        "disclosures with Gemini, and keeps only findings whose quotations match the filing word for word."
+        "Corporate risk intelligence from SEC filings. Choose a company and select **Run analysis**. "
+        "RiskLens fetches the latest 10-K, 10-Q or 20-F from SEC EDGAR, calculates financial indicators from "
+        "its XBRL data, extracts operational risk disclosures with Gemini, and keeps only findings whose "
+        "quotations match the filing word for word."
     )
-    st.caption("Observed facts and AI judgements are labelled separately throughout.")
+    with st.container(border=True):
+        control_panel()
+    st.caption("Prototype. Observed facts and AI judgements are labelled separately throughout.")
 else:
+    # Label names the run on show, so it starts collapsed again after each new run.
+    with st.expander(f"Analyse another company (showing {result.ticker} {result.filing.form})",
+                     icon=":material/search:"):
+        control_panel()
     config = load_config()
     rows = build_register(result)
     header(result)

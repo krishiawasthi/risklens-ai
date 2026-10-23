@@ -84,14 +84,14 @@ python analyse.py TSM --form 20-F --no-ai   # foreign company (annual report)
 
 - **SEC EDGAR:** free, no key. SEC requires a User-Agent with your name and email and allows up to 10 requests per second. RiskLens sends about four requests per analysis and caches responses in `.cache/`.
 - **Gemini:** needs a Google AI Studio key. The free tier is rate-limited and enough for prototyping. Google may use free-tier prompts to improve its products, so use only public data on the free tier. On the paid tier, cost is tokens used multiplied by Google's current price for the model. One full Apple 10-K run used about 17,000 input and 4,300 output tokens, and every run reports its token count. Check Google's pricing page for current rates.
-- **Without Gemini:** switch AI extraction off in the sidebar (or use `--no-ai`). SEC retrieval, ratios and rules still run, at no cost.
+- **Without Gemini:** switch AI extraction off in the main page (or use `--no-ai`). SEC retrieval, ratios and rules still run, at no cost.
 
 ## Publishing on Streamlit Community Cloud
 
 Hosting the app uses no Gemini tokens. Tokens are used only when someone runs a new analysis with AI switched on, and they come from your key. On a free-tier key that can use up your daily quota; with billing enabled it costs money. RiskLens protects against this:
 
 - Set `RISKLENS_ACCESS_CODE`. New AI runs then need the code. Without it, visitors can still run the free SEC and financial analysis.
-- Put finished runs in `demo_runs/`. They are always listed in the sidebar as "Demo:" and cost nothing to open.
+- Put finished runs in `demo_runs/`. They are always listed in the main page as "Demo:" and cost nothing to open.
 
 Steps:
 

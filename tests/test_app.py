@@ -222,3 +222,22 @@ def test_old_saved_runs_without_figures_note_still_load(outputs):
     button(at, "Open saved run").click().run()
     assert not at.exception
     assert not any("has not published" in w.value for w in at.warning)
+
+
+def test_controls_are_on_main_page_not_sidebar(outputs):
+    """Phones hide the sidebar, so every control must be on the main page."""
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert not at.exception
+    assert len(at.sidebar.button) == 0 and len(at.sidebar.text_input) == 0
+    assert any(b.label == "Run analysis" for b in at.main.button)
+
+
+def test_after_opening_a_run_controls_move_into_collapsed_box(outputs):
+    path = pipeline.save_result(sample_result(), outputs)
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.selectbox[0].set_value(path)
+    button(at, "Open saved run").click().run()
+    assert not at.exception
+    box = at.expander[0]
+    assert box.label.startswith("Analyse another company (showing")
+    assert any(b.label == "Run analysis" for b in box.button)
