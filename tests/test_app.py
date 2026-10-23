@@ -196,3 +196,29 @@ def test_company_dropdown_lists_sec_companies_and_runs_choice(outputs, monkeypat
 def test_ticker_box_shown_when_company_list_unavailable(outputs):
     at = AppTest.from_file(APP, default_timeout=60).run()
     assert at.text_input[0].label == "Company ticker"
+
+
+def test_older_figures_note_is_shown_prominently(outputs):
+    note = ("SEC has not published financial figures for this 20-F (accession A-1) yet. The financial "
+            "figures and rules below use the company's previous 20-F (accession A-0, period ended 2024-12-31).")
+    result = sample_result().model_copy(update={"figures_note": note})
+    path = pipeline.save_result(result, outputs)
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.selectbox[0].set_value(path)
+    button(at, "Open saved run").click().run()
+    assert not at.exception
+    shown = [w.value for w in at.warning]
+    assert sum("has not published financial figures" in w for w in shown) == 2  # header and Financials tab
+
+
+def test_old_saved_runs_without_figures_note_still_load(outputs):
+    import json
+    path = pipeline.save_result(sample_result(), outputs)
+    data = json.loads(path.read_text())
+    data.pop("figures_note", None)
+    path.write_text(json.dumps(data))
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.selectbox[0].set_value(path)
+    button(at, "Open saved run").click().run()
+    assert not at.exception
+    assert not any("has not published" in w.value for w in at.warning)

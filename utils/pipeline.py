@@ -18,9 +18,9 @@ from utils.filing_text import all_paragraphs, html_to_lines, split_sections
 from utils.financials import compute_all
 from utils.llm_extractor import ExtractionError, Generator, Usage, analyse_text
 from utils.schemas import AnalysisResult, NotAssessed
-from utils.scoring import ScoringConfig, evaluate_financial_rules
-from utils.sec_client import SECClient, SECNotFound, normalize_ticker
-from utils.xbrl import select_periods
+from utils.scoring import DEFAULT_SECTIONS, ScoringConfig, evaluate_financial_rules
+from utils.sec_client import FormNotFiled, SECClient, SECNotFound, normalize_ticker
+from utils.xbrl import detect_basis, latest_filing_with_figures, select_periods
 
 
 def _is_financial_company(sic: Optional[str]) -> bool:
@@ -43,17 +43,42 @@ def run_analysis(
     progress(f"Looking up {symbol} at SEC")
     cik, name = sec.lookup_ticker(symbol)
     progress(f"Finding the latest {form} for {name}")
-    filing = sec.latest_filing(cik, form, company=name)
+    try:
+        filing = sec.latest_filing(cik, form, company=name)
+    except FormNotFiled as e:
+        # A US company files a 10-K and a foreign company a 20-F. Both are the
+        # annual report, so switch to whichever one the company actually files.
+        if e.alternative is None:
+            raise
+        warnings.append(f"{e} Its latest {e.alternative} was analysed instead.")
+        form = e.alternative
+        progress(f"Finding the latest {form} for {name}")
+        filing = sec.latest_filing(cik, form, company=name)
 
     # --- Financial figures (deterministic) ---------------------------------
     progress("Reading XBRL financial data")
     current = prior = None
+    figures_note = None
     if filing.period_end is None:
         notes.append("SEC did not give a period end date for this filing, so financial figures were not matched")
     else:
         try:
             facts = sec.company_facts(cik)
             current, prior, notes = select_periods(facts, filing.accession, filing.period_end, form)
+            if current is None and detect_basis(facts, filing.accession) is None:
+                earlier = latest_filing_with_figures(facts, form, filing.accession, filing.filed)
+                if earlier is not None:
+                    acc, end = earlier
+                    current, prior, older_notes = select_periods(facts, acc, end, form)
+                    if current is not None:
+                        figures_note = (
+                            f"SEC has not published financial figures for this {form} (accession "
+                            f"{filing.accession}) yet. The financial figures and rules below use the "
+                            f"company's previous {form} (accession {acc}, period ended {end}). "
+                            "The risk text is from the latest filing."
+                        )
+                        warnings.append(figures_note)
+                        notes = notes + older_notes
         except SECNotFound:
             notes.append("SEC has no XBRL financial data for this company")
 
@@ -76,7 +101,7 @@ def run_analysis(
     # --- Filing text ---------------------------------------------------------
     progress("Downloading the filing document")
     lines = html_to_lines(sec.download_document(filing))
-    items = config.extraction.sections[form]
+    items = config.extraction.sections.get(form) or DEFAULT_SECTIONS[form]
     sections = split_sections(lines, form, items)
     for s in sections:
         if not s.found:
@@ -113,6 +138,7 @@ def run_analysis(
         extraction=extraction,
         data_notes=notes,
         warnings=warnings,
+        figures_note=figures_note,
     )
 
 

@@ -16,7 +16,8 @@ from docx.oxml import OxmlElement
 from docx.oxml.ns import qn
 from docx.shared import Cm, Pt, RGBColor
 
-from utils.display import CHANGE_METRICS, category_label, fmt_metric, metric_label, money
+from utils.display import CHANGE_METRICS, category_label, currency_of, fmt_metric, metric_label, money
+from utils.filing_text import display_item
 from utils.financials import compute_metrics
 from utils.register import RegisterRow, build_register, matrix_cells, priority_counts
 from utils.schemas import AnalysisResult
@@ -124,6 +125,10 @@ def _summary(doc, result: AnalysisResult, rows: List[RegisterRow], config: Scori
     else:
         text += ". The AI-assisted review of the filing text was not run for this report."
     doc.add_paragraph(text)
+    if result.figures_note:
+        p = doc.add_paragraph()
+        _label(p, "Note on financial figures: ")
+        p.add_run(result.figures_note)
     if result.not_assessed:
         doc.add_paragraph(
             f"{len(result.not_assessed)} financial rule(s) could not be assessed because the required "
@@ -153,7 +158,7 @@ def _scope(doc, result: AnalysisResult) -> None:
         ["Accession number", f.accession],
         ["Document", f.url or "n/a"],
         ["Sections analysed", sections or "none"],
-        ["Financial data", "SEC XBRL company facts for the same filing"],
+        ["Financial data", result.figures_note or "SEC XBRL company facts for the same filing"],
         ["AI model", ", ".join(x.models_used) if x and x.models_used else "not run"],
         ["Report generated", result.generated_at],
     ]
@@ -212,15 +217,18 @@ def _financials(doc, result: AnalysisResult) -> None:
     if result.current_period is None:
         doc.add_paragraph("No XBRL financial data was available for this filing.")
         return
+    if result.figures_note:
+        doc.add_paragraph(result.figures_note)
     cur, pri = result.current_period, result.prior_period
+    ccy = cur.currency
     prior_metrics = compute_metrics(pri) if pri else {}
     level_rows, change_rows = [], []
     for name, m in result.metrics.items():
         if name in CHANGE_METRICS:
-            change_rows.append([metric_label(name), fmt_metric(name, m.value), m.note])
+            change_rows.append([metric_label(name), fmt_metric(name, m.value, ccy), m.note])
         else:
             p = prior_metrics.get(name)
-            level_rows.append([metric_label(name), fmt_metric(name, m.value), fmt_metric(name, p.value if p else None), m.note])
+            level_rows.append([metric_label(name), fmt_metric(name, m.value, ccy), fmt_metric(name, p.value if p else None, ccy), m.note])
     _table(doc, ["Indicator", cur.label, pri.label if pri else "Prior period", "Note"], level_rows, [5.5, 3.0, 3.0, 5.5])
     if change_rows:
         _table(doc, ["Change versus prior period", "Value", "Note"], change_rows, [6.0, 3.0, 8.0])
@@ -228,13 +236,13 @@ def _financials(doc, result: AnalysisResult) -> None:
                 "Missing inputs are shown as n/a and are never estimated. Source tags are listed in Annex B.")
 
 
-def _rule_detail(doc, r: RegisterRow) -> None:
+def _rule_detail(doc, r: RegisterRow, currency: str = "USD") -> None:
     f = r.flag
     p = doc.add_paragraph()
     _label(p, "Observed (deterministic rule): ")
     p.add_run(
-        f"{metric_label(f.metric)} was {fmt_metric(f.metric, f.observed_value)} for the {f.period.lower()}. "
-        f"The rule '{f.rule_id}' fires when the value is {f.operator} {fmt_metric(f.metric, f.threshold)}."
+        f"{metric_label(f.metric)} was {fmt_metric(f.metric, f.observed_value, currency)} for the {f.period.lower()}. "
+        f"The rule '{f.rule_id}' fires when the value is {f.operator} {fmt_metric(f.metric, f.threshold, currency)}."
     )
     p = doc.add_paragraph()
     _label(p, "Source: ")
@@ -283,14 +291,14 @@ def _ai_detail(doc, r: RegisterRow) -> None:
         doc.add_paragraph(lim, style="List Bullet")
 
 
-def _details(doc, rows: List[RegisterRow]) -> None:
+def _details(doc, rows: List[RegisterRow], currency: str = "USD") -> None:
     doc.add_heading("Annex A: Detailed findings", level=1)
     for r in rows:
         doc.add_heading(f"{r.ref}  {r.title}", level=2)
         _muted(doc, f"{category_label(r.category)} | {r.priority} priority | score {r.score:.0f} | "
                     f"{'Financial rule' if r.basis == 'Rule' else 'AI finding'}")
         if r.basis == "Rule":
-            _rule_detail(doc, r)
+            _rule_detail(doc, r, currency)
         else:
             _ai_detail(doc, r)
 
@@ -334,7 +342,8 @@ def _method(doc, config: ScoringConfig, form: str) -> None:
         f"or {c.high_min_paragraphs_if_corroborated} or more when a financial rule in the same category also fired; "
         f"Medium with {c.medium_min_paragraphs}; Low with 1. Findings with no verified quotation are rejected.",
         f"A quotation must be at least {config.evidence.min_quote_words} words and appear word for word in the cited paragraph.",
-        f"Sections sent to the AI for a {form}: " + ", ".join(f"Item {i}" for i in config.extraction.sections.get(form, [])) + ".",
+        f"Sections sent to the AI for a {form}: "
+        + ", ".join(f"Item {display_item(form, i)}" for i in config.extraction.sections.get(form, [])) + ".",
         "All thresholds and weights are prototype assumptions held in config/scoring.yaml, not industry standards.",
     ]:
         doc.add_paragraph(text, style="List Bullet")
@@ -349,7 +358,8 @@ def _appendix(doc, result: AnalysisResult) -> None:
     for concept, fact in result.current_period.facts.items():
         prior = pri.facts.get(concept) if pri else None
         accns = [fact.accession] + ([prior.accession] if prior and prior.accession != fact.accession else [])
-        rows.append([concept, fact.source_tag or "", money(fact.value), money(prior.value) if prior else "n/a",
+        rows.append([concept, f"{result.current_period.taxonomy}:{fact.source_tag or ''}",
+                     money(fact.value, fact.unit), money(prior.value, prior.unit) if prior else "n/a",
                      ", ".join(a for a in accns if a)])
     _table(doc, ["Concept", "XBRL tag", "Current", "Prior", "Accession"], rows, [3.2, 6.0, 2.2, 2.2, 3.4])
 
@@ -383,7 +393,7 @@ def build_report(result: AnalysisResult, config: ScoringConfig) -> bytes:
     _financials(doc, result)
     _gaps(doc, result)
     _method(doc, config, f.form)
-    _details(doc, rows)
+    _details(doc, rows, currency_of(result))
     _appendix(doc, result)
 
     buffer = BytesIO()

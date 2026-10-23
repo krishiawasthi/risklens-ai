@@ -72,10 +72,17 @@ class ConfidenceSettings(BaseModel):
     medium_min_paragraphs: int = 2
 
 
+DEFAULT_SECTIONS: Dict[str, List[str]] = {
+    "10-K": ["1A", "1C", "3", "9A"],
+    "10-Q": ["1A", "1", "4"],
+    "20-F": ["3D", "15", "16K"],
+}
+
+
 class ExtractionSettings(BaseModel):
     max_chars_per_batch: int = 60000
     max_findings_per_batch: int = 6
-    sections: Dict[str, List[str]] = {"10-K": ["1A", "1C", "3", "9A"], "10-Q": ["1A", "1", "4"]}
+    sections: Dict[str, List[str]] = DEFAULT_SECTIONS
 
 
 class ScoringConfig(BaseModel):

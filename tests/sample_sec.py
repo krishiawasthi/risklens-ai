@@ -33,20 +33,6 @@ SUBMISSIONS = {
     },
 }
 
-FOREIGN_SUBMISSIONS = {
-    "name": "Example Overseas Plc",
-    "filings": {
-        "recent": {
-            "accessionNumber": ["0000777777-26-000001"],
-            "filingDate": ["2026-04-01"],
-            "reportDate": ["2025-12-31"],
-            "form": ["20-F"],
-            "primaryDocument": ["annual.htm"],
-        }
-    },
-}
-
-
 def fact(start, end, val, accn, form="10-K", fy=2025, fp="FY", filed="2026-02-20"):
     f = {"end": end, "val": val, "accn": accn, "fy": fy, "fp": fp, "form": form, "filed": filed}
     if start:
@@ -173,3 +159,95 @@ def standard_routes():
         facts_url(): [(200, COMPANYFACTS)],
         doc_url_10k(): [(200, sample_10k_html())],
     }
+
+
+# ---------------------------------------------------------------------------
+# SYNTHETIC foreign private issuer filing a 20-F under IFRS, in euros
+# ---------------------------------------------------------------------------
+
+FOREIGN_CIK = "0000777777"
+ACC_20F = "0000777777-26-000005"
+ACC_20F_PRIOR = "0000777777-25-000005"
+
+TICKERS["2"] = {"cik_str": 777777, "ticker": "EXOV", "title": "Example Overseas Plc"}
+TICKERS["3"] = {"cik_str": 666666, "ticker": "EXCA", "title": "Example Canada Corp"}
+
+FOREIGN_SUBMISSIONS = {
+    "name": "Example Overseas Plc",
+    "sic": "3674",
+    "sicDescription": "Semiconductors & Related Devices",
+    "filings": {
+        "recent": {
+            "accessionNumber": ["0000777777-26-000009", "0000777777-26-000007", ACC_20F, ACC_20F_PRIOR],
+            "filingDate": ["2026-07-15", "2026-05-02", "2026-04-10", "2025-04-11"],
+            "reportDate": ["2026-07-15", "2025-12-31", "2025-12-31", "2024-12-31"],
+            "form": ["6-K", "20-F/A", "20-F", "20-F"],
+            "primaryDocument": ["ex6k.htm", "exov-20fa.htm", "exov-20251231.htm", "exov-20241231.htm"],
+        }
+    },
+}
+
+CANADIAN_SUBMISSIONS = {
+    "name": "Example Canada Corp",
+    "filings": {
+        "recent": {
+            "accessionNumber": ["0000666666-26-000001"],
+            "filingDate": ["2026-03-20"],
+            "reportDate": ["2025-12-31"],
+            "form": ["40-F"],
+            "primaryDocument": ["annual40f.htm"],
+        }
+    },
+}
+
+
+def eur(*facts):
+    return {"units": {"EUR": list(facts)}}
+
+
+def ffact(start, end, val, accn=ACC_20F, filed="2026-04-10"):
+    return fact(start, end, val, accn, form="20-F", fy=2025, fp="FY", filed=filed)
+
+
+IFRS_COMPANYFACTS = {
+    "cik": 777777,
+    "entityName": "Example Overseas Plc",
+    "facts": {
+        "ifrs-full": {
+            "Revenue": eur(ffact("2025-01-01", "2025-12-31", 5_000_000_000), ffact("2024-01-01", "2024-12-31", 4_500_000_000)),
+            "ProfitLoss": eur(ffact("2025-01-01", "2025-12-31", 400_000_000), ffact("2024-01-01", "2024-12-31", 380_000_000)),
+            "ProfitLossFromOperatingActivities": eur(
+                ffact("2025-01-01", "2025-12-31", 600_000_000), ffact("2024-01-01", "2024-12-31", 550_000_000)),
+            # No InterestExpense tag: FinanceCosts must be used and flagged
+            "FinanceCosts": eur(ffact("2025-01-01", "2025-12-31", 100_000_000), ffact("2024-01-01", "2024-12-31", 90_000_000)),
+            "CurrentAssets": eur(ffact(None, "2025-12-31", 2_000_000_000), ffact(None, "2024-12-31", 2_200_000_000)),
+            "CurrentLiabilities": eur(ffact(None, "2025-12-31", 2_500_000_000), ffact(None, "2024-12-31", 2_000_000_000)),
+            # No total Liabilities tag: leverage must be "not assessed"
+            "Equity": eur(ffact(None, "2025-12-31", 3_000_000_000), ffact(None, "2024-12-31", 2_800_000_000)),
+            "CashFlowsFromUsedInOperatingActivities": eur(
+                ffact("2025-01-01", "2025-12-31", 700_000_000), ffact("2024-01-01", "2024-12-31", 650_000_000)),
+            "CashAndCashEquivalents": eur(ffact(None, "2025-12-31", 500_000_000), ffact(None, "2024-12-31", 450_000_000)),
+        },
+        # A stray US GAAP value must not make the filing look like a US GAAP filer
+        "us-gaap": {"Revenues": usd(fact("2025-01-01", "2025-12-31", 1, ACC_20F))},
+    },
+}
+
+
+def doc_url_20f():
+    return f"https://www.sec.gov/Archives/edgar/data/777777/{ACC_20F.replace('-', '')}/exov-20251231.htm"
+
+
+def sample_20f_html() -> bytes:
+    return (FIXTURES / "sample_20f.html").read_bytes()
+
+
+def foreign_routes():
+    routes = standard_routes()
+    routes.update({
+        submissions_url(FOREIGN_CIK): [(200, FOREIGN_SUBMISSIONS)],
+        facts_url(FOREIGN_CIK): [(200, IFRS_COMPANYFACTS)],
+        doc_url_20f(): [(200, sample_20f_html())],
+        submissions_url("0000666666"): [(200, CANADIAN_SUBMISSIONS)],
+    })
+    return routes

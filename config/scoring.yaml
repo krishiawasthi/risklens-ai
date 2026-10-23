@@ -152,6 +152,9 @@ extraction:
   # coverage but more tokens and API calls.
   # 10-K options: 1 (Business), 1A, 1C, 3 (Legal), 7 (MD&A), 9A (Controls)
   # 10-Q options: 1 (Legal), 1A, 2 (MD&A), 4 (Controls)
+  # 20-F options: 3D (Risk Factors), 4 (Company), 5 (Operating and Financial
+  #               Review), 15 (Controls), 16K (Cybersecurity)
   sections:
     10-K: ["1A", "1C", "3", "9A"]
     10-Q: ["1A", "1", "4"]
+    20-F: ["3D", "15", "16K"]

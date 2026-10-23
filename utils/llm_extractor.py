@@ -59,7 +59,7 @@ class ExtractionError(Exception):
 Generator = Callable[[str, str], str]
 
 
-SYSTEM_INSTRUCTION = """You are an operational risk analyst reviewing a US SEC filing.
+SYSTEM_INSTRUCTION = """You are an operational risk analyst reviewing an SEC filing (Form 10-K, 10-Q or 20-F).
 
 Your only task is to identify potential risks in these categories:
 business_continuity, cybersecurity, third_party, compliance, governance, financial_resilience.

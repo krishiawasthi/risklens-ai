@@ -3,6 +3,7 @@
   python analyse.py AAPL              latest 10-K, with Gemini
   python analyse.py AAPL --form 10-Q  latest 10-Q
   python analyse.py AAPL --no-ai      SEC data and financial rules only (free, no Gemini)
+  python analyse.py TSM               a foreign company: its 20-F is used automatically
 
 Results are saved to outputs/ as JSON.
 """
@@ -25,7 +26,8 @@ def fmt(value):
 def main():
     parser = argparse.ArgumentParser(description="RiskLens: corporate risk analysis of SEC filings")
     parser.add_argument("ticker")
-    parser.add_argument("--form", choices=["10-K", "10-Q"], default="10-K")
+    parser.add_argument("--form", choices=["10-K", "10-Q", "20-F"], default="10-K",
+                        help="10-K switches to 20-F automatically for foreign companies, and back")
     parser.add_argument("--no-ai", action="store_true", help="skip the Gemini step")
     args = parser.parse_args()
     load_dotenv()

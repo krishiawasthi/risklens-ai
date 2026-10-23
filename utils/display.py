@@ -34,26 +34,28 @@ METRIC_INFO = {
 CHANGE_METRICS = {k for k, (_, kind) in METRIC_INFO.items() if kind in ("pct_change", "pp", "delta")}
 
 
-def money(value: Optional[float]) -> str:
+def money(value: Optional[float], currency: str = "USD") -> str:
+    """$73.7bn for USD; 'EUR 12.4bn' style for any other currency."""
     if value is None:
         return "n/a"
     sign = "-" if value < 0 else ""
+    prefix = "$" if currency == "USD" else f"{currency} "
     v = abs(value)
     if v >= 1e9:
-        return f"{sign}${v / 1e9:,.1f}bn"
+        return f"{sign}{prefix}{v / 1e9:,.1f}bn"
     if v >= 1e6:
-        return f"{sign}${v / 1e6:,.1f}m"
-    return f"{sign}${v:,.0f}"
+        return f"{sign}{prefix}{v / 1e6:,.1f}m"
+    return f"{sign}{prefix}{v:,.0f}"
 
 
-def fmt_metric(name: str, value: Optional[float]) -> str:
+def fmt_metric(name: str, value: Optional[float], currency: str = "USD") -> str:
     if value is None:
         return "n/a"
     kind = METRIC_INFO.get(name, (name, "ratio"))[1]
     if kind == "ratio":
         return f"{value:.2f}x"
     if kind == "money":
-        return money(value)
+        return money(value, currency)
     if kind == "pct":
         return f"{value * 100:.1f}%"
     if kind == "pct_change":
@@ -84,3 +86,8 @@ def ticker_from_choice(choice) -> str:
     """Company dropdown label to ticker: 'AAPL · Apple Inc.' -> 'AAPL'.
     A plain ticker (from the fallback text box) comes back unchanged."""
     return (choice or "").split(" · ")[0].strip()
+
+
+def currency_of(result) -> str:
+    """Reporting currency of an analysis result (USD when unknown)."""
+    return result.current_period.currency if result.current_period else "USD"

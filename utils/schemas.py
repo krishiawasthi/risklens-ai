@@ -65,6 +65,8 @@ class FinancialPeriod(BaseModel):
     label: str
     period_end: date
     facts: Dict[str, Fact] = Field(default_factory=dict)
+    currency: str = "USD"  # e.g. "EUR" for a 20-F filer reporting in euros
+    taxonomy: str = "us-gaap"  # or "ifrs-full"
 
     @model_validator(mode="after")
     def check_keys(self) -> "FinancialPeriod":
@@ -296,3 +298,6 @@ class AnalysisResult(BaseModel):
     extraction: Optional[ExtractionResult] = None
     data_notes: List[str] = Field(default_factory=list)
     warnings: List[str] = Field(default_factory=list)
+    # Set when SEC had no figures for this filing and an earlier filing's
+    # figures were used instead. Shown prominently in the app and report.
+    figures_note: Optional[str] = None

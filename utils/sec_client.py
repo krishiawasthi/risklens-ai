@@ -34,7 +34,7 @@ SUBMISSIONS_URL = "https://data.sec.gov/submissions/CIK{cik}.json"
 COMPANYFACTS_URL = "https://data.sec.gov/api/xbrl/companyfacts/CIK{cik}.json"
 ARCHIVE_URL = "https://www.sec.gov/Archives/edgar/data/{cik_int}/{acc_nodash}/{doc}"
 
-SUPPORTED_FORMS = ("10-K", "10-Q")
+SUPPORTED_FORMS = ("10-K", "10-Q", "20-F")
 ONE_DAY = 24 * 60 * 60
 RETRYABLE_STATUS = {429, 500, 502, 503, 504}
 
@@ -45,6 +45,15 @@ class SECError(Exception):
 
 class SECNotFound(SECError):
     """The ticker, company or filing does not exist."""
+
+
+class FormNotFiled(SECNotFound):
+    """The company does not file the requested form. `alternative` names the
+    form it files instead when RiskLens can analyse that one (10-K or 20-F)."""
+
+    def __init__(self, message: str, alternative: Optional[str] = None):
+        super().__init__(message)
+        self.alternative = alternative
 
 
 def normalize_ticker(ticker: str) -> str:
@@ -187,7 +196,8 @@ class SECClient:
 
     def latest_filing(self, cik: str, form: str, company: str = "") -> FilingRef:
         """Most recent original filing of this form. Amendments such as
-        10-K/A are excluded because they often contain only part of a report."""
+        10-K/A or 20-F/A are excluded because they often contain only part of
+        a report. Raises FormNotFiled when the company files a different form."""
         if form not in SUPPORTED_FORMS:
             raise ValueError(f"Form must be one of {SUPPORTED_FORMS}")
         sub = self.get_json(SUBMISSIONS_URL.format(cik=cik), max_age=ONE_DAY)
@@ -203,13 +213,19 @@ class SECClient:
 
         matches = [i for i, f in enumerate(forms) if f == form]
         if not matches:
+            name = company or cik
             present = set(forms)
-            if present & {"20-F", "40-F"}:
-                raise SECNotFound(
-                    f"{company or cik} files annual reports on Form 20-F or 40-F as a foreign issuer. "
-                    "RiskLens supports only 10-K and 10-Q filers."
-                )
-            raise SECNotFound(f"No {form} was found among the recent filings of {company or cik}.")
+            if form == "10-K" and "20-F" in present:
+                raise FormNotFiled(f"{name} files annual reports on Form 20-F, not 10-K.", alternative="20-F")
+            if form == "20-F" and "10-K" in present:
+                raise FormNotFiled(f"{name} files annual reports on Form 10-K, not 20-F.", alternative="10-K")
+            if form == "10-Q" and "20-F" in present:
+                raise FormNotFiled(f"{name} is a foreign issuer that files Form 20-F once a year and no 10-Q "
+                                   "quarterly reports. Choose 20-F to analyse its annual report.")
+            if "40-F" in present:
+                raise FormNotFiled(f"{name} files Form 40-F as a Canadian issuer. RiskLens supports "
+                                   "10-K, 10-Q and 20-F filers.")
+            raise FormNotFiled(f"No {form} was found among the recent filings of {name}.")
 
         i = max(matches, key=lambda k: filed[k])
         doc = documents[i]

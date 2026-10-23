@@ -22,7 +22,8 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from utils import pipeline
-from utils.display import category_label, fmt_metric, md_escape, metric_label, money, ticker_from_choice, CHANGE_METRICS
+from utils.display import (CHANGE_METRICS, category_label, currency_of, fmt_metric, md_escape, metric_label, money,
+                           ticker_from_choice)
 from utils.financials import compute_metrics
 from utils.llm_extractor import ExtractionError, Usage, make_gemini_generator
 from utils.register import build_register, matrix_cells, priority_counts
@@ -141,7 +142,9 @@ with st.sidebar:
         ticker = ticker_from_choice(choice)
     else:
         ticker = st.text_input("Company ticker", value="AAPL", max_chars=10)
-    form = st.segmented_control("Filing", ["10-K", "10-Q"], default="10-K", required=True)
+    form = st.segmented_control("Filing", ["10-K", "10-Q", "20-F"], default="10-K", required=True,
+                                help="10-K: US annual report. 10-Q: US quarterly report. 20-F: annual report of a "
+                                     "foreign company. Choosing 10-K for a foreign company uses its 20-F automatically.")
     use_ai = st.toggle("AI risk extraction (Gemini)", value=not ACCESS_CODE,
                        help="Off: SEC retrieval and financial rules only. Free and needs no Gemini key.")
     code = ""
@@ -225,6 +228,8 @@ def header(result):
     st.caption(f"{f.form} for the period ended {f.period_end} · filed {f.filed} · accession {f.accession}")
     if f.url:
         st.link_button("Open filing on SEC", f.url)
+    if result.figures_note:
+        st.warning(md_escape(result.figures_note), icon=":material/history:")
     all_warnings = result.warnings + (result.extraction.warnings if result.extraction else [])
     if all_warnings:
         with st.expander(f"{len(all_warnings)} warning(s) for this run", icon=":material/warning:"):
@@ -291,7 +296,7 @@ def register_tab(rows, config, result):
         st.altair_chart(category_chart(shown, config), width="stretch")
 
 
-def evidence_tab(rows):
+def evidence_tab(rows, currency="USD"):
     if not rows:
         st.info("No findings to show.")
         return
@@ -303,8 +308,8 @@ def evidence_tab(rows):
                 f = r.flag
                 st.markdown("**Observed (deterministic rule)**")
                 st.markdown(md_escape(
-                    f"{metric_label(f.metric)} was {fmt_metric(f.metric, f.observed_value)} "
-                    f"(rule fires when {f.operator} {fmt_metric(f.metric, f.threshold)}). Period: {f.period}. "
+                    f"{metric_label(f.metric)} was {fmt_metric(f.metric, f.observed_value, currency)} "
+                    f"(rule fires when {f.operator} {fmt_metric(f.metric, f.threshold, currency)}). Period: {f.period}. "
                     f"Source: XBRL, accession {', '.join(f.sources)}."))
                 st.markdown(f"**Rating:** likelihood {f.likelihood}, impact {f.impact} (fixed in config/scoring.yaml)")
                 if f.follow_up_questions:
@@ -340,16 +345,19 @@ def financials_tab(result):
     if result.current_period is None:
         st.info("No XBRL financial data was available for this filing.")
         return
+    if result.figures_note:
+        st.warning(md_escape(result.figures_note), icon=":material/history:")
     cur, pri = result.current_period, result.prior_period
+    ccy = cur.currency
     prior_metrics = compute_metrics(pri) if pri else {}
     levels, changes = [], []
     for name, m in result.metrics.items():
         if name in CHANGE_METRICS:
-            changes.append({"Change": metric_label(name), "Value": fmt_metric(name, m.value), "Note": m.note, "Formula": m.formula})
+            changes.append({"Change": metric_label(name), "Value": fmt_metric(name, m.value, ccy), "Note": m.note, "Formula": m.formula})
         else:
             p = prior_metrics.get(name)
-            levels.append({"Indicator": metric_label(name), cur.label: fmt_metric(name, m.value),
-                           (pri.label if pri else "Prior"): fmt_metric(name, p.value if p else None),
+            levels.append({"Indicator": metric_label(name), cur.label: fmt_metric(name, m.value, ccy),
+                           (pri.label if pri else "Prior"): fmt_metric(name, p.value if p else None, ccy),
                            "Note": m.note, "Formula": m.formula})
     st.subheader("Indicators")
     st.dataframe(pd.DataFrame(levels), hide_index=True, width="stretch")
@@ -359,8 +367,8 @@ def financials_tab(result):
     facts = []
     for concept, fact in cur.facts.items():
         p = pri.facts.get(concept) if pri else None
-        facts.append({"Concept": concept, "XBRL tag": fact.source_tag, "Current": money(fact.value),
-                      "Prior": money(p.value) if p else "n/a", "Accession": fact.accession})
+        facts.append({"Concept": concept, "XBRL tag": f"{cur.taxonomy}:{fact.source_tag}", "Current": money(fact.value, ccy),
+                      "Prior": money(p.value, ccy) if p else "n/a", "Accession": fact.accession})
     st.dataframe(pd.DataFrame(facts), hide_index=True, width="stretch")
     for note in result.data_notes:
         st.caption(md_escape(note))
@@ -412,7 +420,7 @@ result = st.session_state.get("result")
 if result is None:
     st.title("RiskLens AI")
     st.markdown(
-        "Choose a US-listed company and select **Run analysis**. RiskLens fetches the latest 10-K or 10-Q "
+        "Choose a US-listed company and select **Run analysis**. RiskLens fetches the latest 10-K, 10-Q or 20-F "
         "from SEC EDGAR, calculates financial indicators from its XBRL data, extracts operational risk "
         "disclosures with Gemini, and keeps only findings whose quotations match the filing word for word."
     )
@@ -426,7 +434,7 @@ else:
     with tabs[0]:
         register_tab(rows, config, result)
     with tabs[1]:
-        evidence_tab(rows)
+        evidence_tab(rows, currency_of(result))
     with tabs[2]:
         financials_tab(result)
     with tabs[3]:

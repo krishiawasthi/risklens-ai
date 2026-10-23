@@ -12,12 +12,16 @@ How sections are found:
   4. A section ends at the next heading for a DIFFERENT Item. Some filings
      (Microsoft's, for example) repeat "Item 1A" as a page header on every
      page, and those repeats must not end the section.
+  5. In a 20-F, Risk Factors is not an Item of its own but part D of Item 3.
+     It is found by locating Item 3 first and then its "Risk Factors"
+     sub-heading, which some filers write as "D. Risk Factors" and others
+     (TSMC, for example) simply as "Risk Factors".
 """
 from __future__ import annotations
 
 import re
 from collections import Counter
-from typing import Dict, List, NamedTuple, Tuple, Union
+from typing import Dict, List, NamedTuple, Optional, Pattern, Tuple, Union
 
 from utils.evidence import paragraphs_from_text
 from utils.schemas import FilingSection, Paragraph
@@ -26,6 +30,15 @@ from utils.schemas import FilingSection, Paragraph
 class SectionSpec(NamedTuple):
     title: str
     keyword: str  # must appear in the heading line or the line after it
+    parent: Optional[str] = None  # for a part of an Item, e.g. 20-F Item 3.D
+    sub_heading: Optional[Pattern] = None  # how that part's heading looks
+
+
+# "Risk Factors", "D. Risk Factors", "D) RISK FACTORS" or "Item 3.D Risk Factors",
+# as a heading line on its own (not a sentence that starts with those words)
+RISK_FACTORS_SUBHEADING = re.compile(
+    r"^(item\s*3\s*\.?\s*)?(d\s*[.):]\s*)?risk\s+factors\s*[.:]?$", re.IGNORECASE
+)
 
 
 # Items RiskLens knows how to find. Keys are lower case.
@@ -44,9 +57,18 @@ SECTION_SPECS: Dict[str, Dict[str, SectionSpec]] = {
         "2": SectionSpec("Management's Discussion and Analysis", "discussion and analysis"),
         "4": SectionSpec("Controls and Procedures", "controls and procedures"),
     },
+    "20-F": {
+        "3d": SectionSpec("Risk Factors", "", parent="3", sub_heading=RISK_FACTORS_SUBHEADING),
+        "4": SectionSpec("Information on the Company", "information on the company"),
+        "5": SectionSpec("Operating and Financial Review and Prospects", "operating and financial review"),
+        "15": SectionSpec("Controls and Procedures", "controls and procedures"),
+        "16k": SectionSpec("Cybersecurity", "cybersecurity"),
+    },
 }
 
-HEADING_RE = re.compile(r"^item\s+(\d{1,2}[a-c]?)(?![0-9a-z])", re.IGNORECASE)
+# 20-F Items run up to 16K, so letters a to k are allowed after the number
+HEADING_RE = re.compile(r"^item\s+(\d{1,2}[a-k]?)(?![0-9a-z])", re.IGNORECASE)
+MAX_SUBHEADING_CHARS = 60
 MAX_HEADING_CHARS = 150
 SHORT_SECTION_CHARS = 500
 
@@ -89,7 +111,7 @@ def html_to_lines(html: Union[str, bytes]) -> List[str]:
 
 
 BOILERPLATE_MAX_CHARS = 120
-FOOTER_RE = re.compile(r"form\s+10-[kq]\b", re.IGNORECASE)
+FOOTER_RE = re.compile(r"form\s+(10-[kq]|20-f)\b", re.IGNORECASE)
 
 
 def remove_boilerplate(lines: List[str]) -> List[str]:
@@ -128,6 +150,41 @@ def find_headings(lines: List[str]) -> List[Tuple[int, str]]:
     return found
 
 
+def display_item(form: str, item: str) -> str:
+    """How an Item is written for people: '1A', or '3.D' for a 20-F part."""
+    spec = SECTION_SPECS[form][item.lower()]
+    if spec.parent:
+        return f"{spec.parent}.{item[len(spec.parent):].upper()}"
+    return item.upper()
+
+
+def _best_span(lines, headings, key: str, keyword: str):
+    """Longest (chars, start, end, repeated headers skipped) for an Item, or None."""
+    best = None
+    for k, (idx, heading_id) in enumerate(headings):
+        if heading_id != key or keyword not in _heading_text(lines, idx):
+            continue
+        end, skipped = len(lines), 0
+        for next_idx, next_id in headings[k + 1:]:
+            if next_id != key:
+                end = next_idx
+                break
+            skipped += 1
+        chars = sum(len(line) for line in lines[idx + 1:end])
+        if best is None or chars > best[0]:
+            best = (chars, idx + 1, end, skipped)
+    return best
+
+
+def _sub_span(lines, parent_span, pattern: Pattern):
+    """Inside a parent Item, the part from its sub-heading to the Item's end."""
+    _, start, end, skipped = parent_span
+    for i in range(start - 1, end):  # start - 1 includes the Item heading line itself
+        if len(lines[i]) <= MAX_SUBHEADING_CHARS and pattern.match(lines[i]):
+            return sum(len(line) for line in lines[i + 1:end]), i + 1, end, skipped
+    return None
+
+
 def split_sections(lines: List[str], form: str, items: List[str]) -> List[FilingSection]:
     specs = SECTION_SPECS[form]
     headings = find_headings(lines)
@@ -136,39 +193,34 @@ def split_sections(lines: List[str], form: str, items: List[str]) -> List[Filing
     for item in items:
         key = item.lower()
         spec = specs[key]
-        best = None  # (chars, start, end, repeated headers skipped)
-        for k, (idx, heading_id) in enumerate(headings):
-            if heading_id != key or spec.keyword not in _heading_text(lines, idx):
-                continue
-            end, skipped = len(lines), 0
-            for next_idx, next_id in headings[k + 1:]:
-                if next_id != key:
-                    end = next_idx
-                    break
-                skipped += 1
-            chars = sum(len(line) for line in lines[idx + 1:end])
-            if best is None or chars > best[0]:
-                best = (chars, idx + 1, end, skipped)
-
         label = item.upper()
+        shown = display_item(form, item)
+
+        if spec.parent:
+            parent = _best_span(lines, headings, spec.parent, spec.keyword)
+            best = _sub_span(lines, parent, spec.sub_heading) if parent else None
+            missing = (f"Item {spec.parent} was not found in the document" if parent is None
+                       else f"Item {spec.parent} was found, but not its '{spec.title}' sub-heading")
+        else:
+            best = _best_span(lines, headings, key, spec.keyword)
+            missing = "Heading not found in the document"
+
         if best is None:
-            sections.append(
-                FilingSection(item=label, title=spec.title, found=False, note="Heading not found in the document")
-            )
+            sections.append(FilingSection(item=shown, title=spec.title, found=False, note=missing))
             continue
 
         chars, start, end, skipped = best
         paragraphs = paragraphs_from_text(
-            "\n\n".join(lines[start:end]), section=f"Item {label}. {spec.title}", id_prefix=label
+            "\n\n".join(lines[start:end]), section=f"Item {shown}. {spec.title}", id_prefix=label
         )
         notes = []
         if chars < SHORT_SECTION_CHARS:
             notes.append("Very short section. It may say 'Not applicable' or refer to another document.")
         if skipped:
-            notes.append(f"Ignored {skipped} repeated 'Item {label}' page header(s) inside the section.")
+            notes.append(f"Ignored {skipped} repeated 'Item {spec.parent or label}' page header(s) inside the section.")
         note = " ".join(notes)
         sections.append(
-            FilingSection(item=label, title=spec.title, found=True, chars=chars, paragraphs=paragraphs, note=note)
+            FilingSection(item=shown, title=spec.title, found=True, chars=chars, paragraphs=paragraphs, note=note)
         )
     return sections
 

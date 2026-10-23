@@ -83,4 +83,6 @@ def test_10q_balance_sheet_prior_comes_from_last_years_10q():
 
 def test_no_data_at_all():
     current, prior, notes = select_periods({"facts": {}}, ACC_10K, date(2025, 12, 31), "10-K")
-    assert current is None and prior is None and len(notes) == 10
+    assert current is None and prior is None
+    assert len(notes) == 1
+    assert f"has no financial figures for filing {ACC_10K}" in notes[0]
