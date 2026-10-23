@@ -1,5 +1,5 @@
 from tests.sample_result import sample_result
-from utils.display import fmt_metric, md_escape, money
+from utils.display import fmt_metric, md_escape, money, ticker_from_choice
 from utils.register import build_register, matrix_cells, priority_counts
 from utils.scoring import load_config
 
@@ -54,3 +54,10 @@ def test_number_formats():
 def test_markdown_escape_stops_dollar_signs_becoming_maths():
     assert md_escape("costs rose from $5 to $10") == "costs rose from \\$5 to \\$10"
     assert md_escape("[click](http://x)") == "\\[click\\]\\(http://x\\)"
+
+
+def test_ticker_from_dropdown_choice():
+    assert ticker_from_choice("AAPL · Apple Inc.") == "AAPL"
+    assert ticker_from_choice("BRK-B · BERKSHIRE HATHAWAY INC") == "BRK-B"
+    assert ticker_from_choice("nvda") == "nvda"  # plain ticker from the fallback box
+    assert ticker_from_choice(None) == ""

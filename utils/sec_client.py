@@ -174,6 +174,17 @@ class SECClient:
             "Only companies registered with the SEC are listed."
         )
 
+    def list_companies(self) -> List[Tuple[str, str]]:
+        """Every (ticker, company name) in SEC's ticker list, sorted by ticker.
+        A company with several share classes appears once per ticker."""
+        data = self.get_json(TICKERS_URL, max_age=ONE_DAY)
+        companies = {}
+        for entry in data.values():
+            ticker = str(entry.get("ticker", "")).upper().strip()
+            if ticker and ticker not in companies:
+                companies[ticker] = str(entry.get("title", ticker)).strip()
+        return sorted(companies.items())
+
     def latest_filing(self, cik: str, form: str, company: str = "") -> FilingRef:
         """Most recent original filing of this form. Amendments such as
         10-K/A are excluded because they often contain only part of a report."""

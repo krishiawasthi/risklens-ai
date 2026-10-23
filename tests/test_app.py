@@ -18,6 +18,22 @@ def outputs(tmp_path, monkeypatch):
     return tmp_path / "outputs"
 
 
+@pytest.fixture(autouse=True)
+def no_company_download(monkeypatch):
+    """By default the company list is unavailable, so the app shows the plain
+    ticker box and tests never call SEC. Tests that need the list patch it."""
+    import streamlit as st
+    from utils.sec_client import SECError
+
+    def unavailable(self):
+        raise SECError("not in tests")
+
+    monkeypatch.setattr("utils.sec_client.SECClient.list_companies", unavailable)
+    st.cache_data.clear()
+    yield
+    st.cache_data.clear()
+
+
 def button(at, label):
     return next(b for b in at.button if b.label == label)
 
@@ -153,3 +169,30 @@ def test_empty_register_explains_when_ai_was_not_run(outputs):
     button(at, "Open saved run").click().run()
     assert not at.exception
     assert "AI extraction was not run" in at.info[0].value
+
+
+def test_company_dropdown_lists_sec_companies_and_runs_choice(outputs, monkeypatch):
+    monkeypatch.setenv("SEC_USER_AGENT", "Test Person test@example.com")
+    monkeypatch.setattr("utils.sec_client.SECClient.list_companies",
+                        lambda self: [("AAPL", "Apple Inc."), ("MSFT", "MICROSOFT CORP")])
+    tickers = []
+
+    def fake_run(ticker, form, sec, config, generate, usage, progress):
+        tickers.append(ticker)
+        return sample_result()
+
+    monkeypatch.setattr(pipeline, "run_analysis", fake_run)
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    company = at.selectbox[0]
+    assert company.label == "Company"
+    assert company.value == "AAPL · Apple Inc."
+    company.set_value("MSFT · MICROSOFT CORP")
+    at.toggle[0].set_value(False)
+    button(at, "Run analysis").click().run()
+    assert not at.exception
+    assert tickers == ["MSFT"]
+
+
+def test_ticker_box_shown_when_company_list_unavailable(outputs):
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    assert at.text_input[0].label == "Company ticker"

@@ -22,7 +22,7 @@ import streamlit as st
 from dotenv import load_dotenv
 
 from utils import pipeline
-from utils.display import category_label, fmt_metric, md_escape, metric_label, money, CHANGE_METRICS
+from utils.display import category_label, fmt_metric, md_escape, metric_label, money, ticker_from_choice, CHANGE_METRICS
 from utils.financials import compute_metrics
 from utils.llm_extractor import ExtractionError, Usage, make_gemini_generator
 from utils.register import build_register, matrix_cells, priority_counts
@@ -91,6 +91,21 @@ def run_label(path: Path) -> str:
     return prefix + path.stem.replace("_", " ")
 
 
+@st.cache_data(ttl=24 * 60 * 60, show_spinner=False)
+def _load_company_options() -> list:
+    return [f"{ticker} · {name}" for ticker, name in SECClient().list_companies()]
+
+
+def company_options() -> list:
+    """'AAPL · Apple Inc.' for every company in SEC's ticker list, or an empty
+    list if SEC cannot be reached. Failures are not cached, so the dropdown
+    returns on the next page load once SEC is reachable again."""
+    try:
+        return _load_company_options()
+    except SECError:
+        return []
+
+
 def ai_allowed(code_entered: str) -> bool:
     """True when no access code is configured, or the right code was entered.
     compare_digest avoids leaking the code through response timing."""
@@ -116,7 +131,16 @@ def run_new_analysis(ticker: str, form: str, use_ai: bool) -> None:
 with st.sidebar:
     st.header("RiskLens AI")
     st.caption("Corporate risk intelligence from SEC filings. Prototype.")
-    ticker = st.text_input("Company ticker", value="AAPL", max_chars=10)
+    options = company_options()
+    if options:
+        default = next((i for i, o in enumerate(options) if o.startswith("AAPL · ")), 0)
+        choice = st.selectbox(
+            "Company", options, index=default, filter_mode="contains",
+            help="Type a company name or ticker to search every company in SEC's ticker list.",
+        )
+        ticker = ticker_from_choice(choice)
+    else:
+        ticker = st.text_input("Company ticker", value="AAPL", max_chars=10)
     form = st.segmented_control("Filing", ["10-K", "10-Q"], default="10-K", required=True)
     use_ai = st.toggle("AI risk extraction (Gemini)", value=not ACCESS_CODE,
                        help="Off: SEC retrieval and financial rules only. Free and needs no Gemini key.")
@@ -388,7 +412,7 @@ result = st.session_state.get("result")
 if result is None:
     st.title("RiskLens AI")
     st.markdown(
-        "Enter a US-listed company's ticker and choose **Run analysis**. RiskLens fetches the latest 10-K or 10-Q "
+        "Choose a US-listed company and select **Run analysis**. RiskLens fetches the latest 10-K or 10-Q "
         "from SEC EDGAR, calculates financial indicators from its XBRL data, extracts operational risk "
         "disclosures with Gemini, and keeps only findings whose quotations match the filing word for word."
     )

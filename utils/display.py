@@ -78,3 +78,9 @@ def md_escape(text: str) -> str:
     """Escape Markdown so filing text and AI text display literally.
     '$' matters most: Streamlit would otherwise render "$5 to $10" as maths."""
     return _MD_SPECIAL.sub(r"\\\1", text or "")
+
+
+def ticker_from_choice(choice) -> str:
+    """Company dropdown label to ticker: 'AAPL · Apple Inc.' -> 'AAPL'.
+    A plain ticker (from the fallback text box) comes back unchanged."""
+    return (choice or "").split(" · ")[0].strip()

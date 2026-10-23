@@ -125,3 +125,11 @@ def test_rate_limit_spaces_requests():
     c.lookup_ticker("EXMC")
     c.latest_filing(CIK, "10-K")  # second request at the same clock time
     assert waits and waits[0] == pytest.approx(0.12)
+
+
+def test_list_companies_sorted_and_unique():
+    c, _ = client()
+    companies = c.list_companies()
+    assert companies == sorted(companies)
+    assert ("EXMC", "Example Manufacturing Corp") in companies
+    assert len({t for t, _ in companies}) == len(companies)
