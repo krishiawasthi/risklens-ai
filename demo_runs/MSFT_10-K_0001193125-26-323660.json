@@ -11,7 +11,7 @@
     "sic": "7372",
     "sic_description": "Services-Prepackaged Software"
   },
-  "generated_at": "2026-10-18T22:29:35+00:00",
+  "generated_at": "2026-10-22T23:59:57+00:00",
   "current_period": {
     "label": "Year ended 2026-06-30",
     "period_end": "2026-06-30",
@@ -1117,10 +1117,484 @@
       "note": "Ignored 1 repeated 'Item 9A' page header(s) inside the section."
     }
   ],
-  "extraction": null,
+  "extraction": {
+    "findings": [
+      {
+        "finding_id": "AI-01",
+        "title": "Unauthorized Access to Source Code and Email via Legacy Test Account",
+        "category": "cybersecurity",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0036",
+            "section": "Item 1A. Risk Factors",
+            "quote": "Commission on January 19, 2024 and amended on March 8, 2024, beginning in late November 2023, a nation-state associated threat actor used a password spray attack to compromise a legacy test account and, in turn, gain access to Microsoft email accounts. The threat actor used information it obtained to gain unauthorized access to some of our source code repositories and internal systems, and the threat actor could continue to utilize this and other information to attempt to gain access to our systems or otherwise adversely affect our business and results of operations.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "A nation-state threat actor compromised internal infrastructure using a legacy test account to gain access to email accounts, source code repositories, and internal systems. Such security breaches threaten internal data integrity, impair customer trust, and create ongoing operational risk of further network exploitation.",
+        "likelihood": 5,
+        "impact": 4,
+        "rationale": "The filing confirms that this cyber incident occurred starting in late November 2023 and affected email, source code, and internal systems.",
+        "score": 20.0,
+        "priority": "High",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What specific operational access controls have been implemented to decommission or secure legacy test accounts across all environments?",
+          "How is management evaluating the potential downstream risks associated with compromised source code repositories?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The filing does not detail the complete scope of technical data or specific source code exposed during the incident."
+        ]
+      },
+      {
+        "finding_id": "AI-09",
+        "title": "Tax Audit and Liability Exposure",
+        "category": "financial_resilience",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0085",
+            "section": "Item 1A. Risk Factors",
+            "quote": "We are currently under IRS audit for prior tax years and have received Notices of Proposed Adjustment (“NOPAs”) from the IRS for the tax years 2004 to 2013. The primary issues in the NOPAs relate to intercompany transfer pricing. In the NOPAs, the IRS is seeking an additional tax payment of $28.9 billion plus penalties and interest.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "The company is subject to ongoing tax audits, including a significant dispute with the IRS regarding intercompany transfer pricing. Adverse outcomes in these audits could result in substantial tax payments and penalties.",
+        "likelihood": 5,
+        "impact": 4,
+        "rationale": "The filing explicitly states that the company is currently under audit and has received NOPAs, confirming the risk is already happening. The impact is major given the $28.9 billion figure.",
+        "score": 20.0,
+        "priority": "High",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What is the current status of the negotiations regarding the IRS NOPAs?",
+          "Are there similar tax disputes pending in other international jurisdictions?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The text does not provide the company's internal assessment of the probability of an unfavorable outcome.",
+          "The text does not state the total amount of reserves set aside for these specific tax contingencies."
+        ]
+      },
+      {
+        "finding_id": "AI-02",
+        "title": "Critical Datacenter Hardware and Component Supply Constraints",
+        "category": "third_party",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0063",
+            "section": "Item 1A. Risk Factors",
+            "quote": "We have experienced and may continue to experience supply constraints, including shortages of semiconductors, networking equipment, power systems, cooling equipment, and other key components.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "The business relies on third-party suppliers for essential hardware components including semiconductors, networking gear, and cooling systems. Supply chain shortages and vendor concentration delay infrastructure expansion, increase costs, and jeopardize the company's ability to meet cloud and AI demand.",
+        "likelihood": 5,
+        "impact": 3,
+        "rationale": "The company explicit states that it has already experienced supply constraints for key components used in datacenters and infrastructure.",
+        "score": 15.0,
+        "priority": "High",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What dual-sourcing or long-term procurement agreements are in place to mitigate component shortages?",
+          "How are current component lead times impacting datacenter construction schedules and delivery targets?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The filing does not provide financial figures showing the precise cost impact of hardware supply delays."
+        ]
+      },
+      {
+        "finding_id": "AI-04",
+        "title": "Operational Costs and Product Continuity Risks from Changing Trade Laws",
+        "category": "compliance",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0077",
+            "section": "Item 1A. Risk Factors",
+            "quote": "U.S. tariffs, shifting AI export controls policies, and disagreements among governments on sanctions policies toward third countries, has and may continue to increase operational costs, create uncertainty in the continuity of our products, and accelerate sovereignty initiatives among international partners and customers.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "Shifting global trade restrictions, AI export controls, and tariffs complicate compliance and international product distribution. These regulatory pressures increase operational expenditures and limit access to key foreign markets and technical resources.",
+        "likelihood": 5,
+        "impact": 3,
+        "rationale": "The text confirms that tariffs and export control policies have already increased operational costs and created product continuity uncertainties.",
+        "score": 15.0,
+        "priority": "High",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "How is management preparing for potential new AI export restrictions or expanded tariff regimes?",
+          "What geographic operational adjustments are being made to comply with regional sovereignty initiatives?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The filing does not quantify the exact financial losses or tariff costs incurred to date."
+        ]
+      },
+      {
+        "finding_id": "AI-07",
+        "title": "Cybersecurity Threat Environment",
+        "category": "cybersecurity",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1C-0008",
+            "section": "Item 1C. Cybersecurity",
+            "quote": "However, the cybersecurity threat environment is increasingly challenging, and we, along with the entire digital ecosystem, are under constant and increasing threat.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "The company operates in an increasingly challenging cybersecurity threat environment. While it has implemented governance frameworks and incident response plans, it remains under constant threat as a central player in the digital ecosystem.",
+        "likelihood": 3,
+        "impact": 5,
+        "rationale": "The company acknowledges the threat is constant and increasing, making it a possible risk. The impact is rated as 5 because a major breach could threaten the company's ability to operate its cloud infrastructure and services.",
+        "score": 15.0,
+        "priority": "High",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What are the primary metrics used to evaluate the effectiveness of the Secure Future Initiative?",
+          "How does the company ensure third-party service providers maintain consistent security standards?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The filing states that no cybersecurity threats have materially affected the company to date.",
+          "The text does not detail the specific nature of the most critical vulnerabilities."
+        ]
+      },
+      {
+        "finding_id": "AI-03",
+        "title": "Unrealized Returns on Accelerated Infrastructure Capital Expenditures",
+        "category": "financial_resilience",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0017",
+            "section": "Item 1A. Risk Factors",
+            "quote": "We have made and are continuing to make significant capital and operational investments to develop, train, deploy, and support AI models and related cloud-based services, including building and expanding datacenters, acquiring necessary components, and securing energy resources. These investments are being made at significant scale and on an accelerated timeline, require substantial and increasing capital expenditures and continued access to capital, and are in advance of fully developed revenue streams.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "Building and expanding AI and cloud infrastructure requires massive, upfront capital expenditures ahead of guaranteed customer revenue. If customer adoption or monetization falls short, the company risks asset impairments, decreased margins, and capital strain.",
+        "likelihood": 3,
+        "impact": 4,
+        "rationale": "Accelerated capital spending is taking place in advance of fully developed revenue streams, creating financial vulnerability if customer adoption lags.",
+        "score": 12.0,
+        "priority": "Medium",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What metrics and thresholds are used to adjust capital expenditure commitments if cloud and AI demand softens?",
+          "What is the expected timeline for generating profitable returns on current datacenter expansion investments?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The filing does not quantify the specific monetary value of capital expenditures allocated strictly to AI investments."
+        ]
+      },
+      {
+        "finding_id": "AI-05",
+        "title": "Datacenter Expansion Restrictions Due to Power Availability",
+        "category": "business_continuity",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0060",
+            "section": "Item 1A. Risk Factors",
+            "quote": "Limitations in power availability, delays in obtaining power connections, outages, shortages, increased energy costs, or requirements imposed by utilities, regulators, or other market participants could restrict our ability to develop or expand datacenter capacity.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "Expanding computing capacity requires substantial electrical power, which is constrained by grid limitations, regulatory requirements, and utility infrastructure. Power shortages or connection delays can halt datacenter development, directly impeding business growth and service availability.",
+        "likelihood": 3,
+        "impact": 4,
+        "rationale": "Power constraints represent a significant potential bottleneck for infrastructure scaling, which is fundamental to customer service delivery.",
+        "score": 12.0,
+        "priority": "Medium",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What alternative power generation strategies or long-term utility agreements are being secured for high-density datacenters?",
+          "Which geographical regions face the highest risk of power connection delays for upcoming datacenter projects?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The filing does not state whether any active datacenter projects are currently delayed due to power shortages."
+        ]
+      },
+      {
+        "finding_id": "AI-10",
+        "title": "Business Continuity and Catastrophic Event Risk",
+        "category": "business_continuity",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0100",
+            "section": "Item 1A. Risk Factors",
+            "quote": "A catastrophic event that results in the destruction or disruption of any of our critical business or systems, or the infrastructure or systems they rely on, such as power grids, could harm our ability to conduct normal business operations or adversely affect our results of operations.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "The company's operations are concentrated in seismically active regions, and its reliance on cloud services increases the potential impact of prolonged outages. Catastrophic events could disrupt critical business functions and supply chains.",
+        "likelihood": 2,
+        "impact": 5,
+        "rationale": "While a major catastrophic event is unlikely, the impact is rated 5 because it could threaten the company's ability to operate its core cloud and R&D functions.",
+        "score": 10.0,
+        "priority": "Medium",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What is the maximum expected downtime for critical cloud services in the event of a regional disaster?",
+          "How are R&D operations geographically diversified to mitigate the risk of a Seattle or Silicon Valley event?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The text does not detail the specific redundancy measures for the mentioned seismically active regions.",
+          "The text does not define the scope of 'prolonged service outages' in terms of time."
+        ]
+      },
+      {
+        "finding_id": "AI-06",
+        "title": "Regulatory and Compliance Risks in Data Handling",
+        "category": "compliance",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0079",
+            "section": "Item 1A. Risk Factors",
+            "quote": "Legal requirements relating to the collection, storage, handling, and transfer of personal data globally continue to evolve.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          },
+          {
+            "paragraph_id": "1A-0079",
+            "section": "Item 1A. Risk Factors",
+            "quote": "Data protection authorities and governments in the EU and other markets have and may again restrict and/or block the use of services that involve the transfer of data across borders.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "The company faces evolving legal requirements for global data collection, storage, and transfer. Restrictions on cross-border data flows and new regulations like the Data Act could increase operational complexity and costs.",
+        "likelihood": 3,
+        "impact": 3,
+        "rationale": "The regulatory landscape is described as evolving and subject to change, making compliance challenges possible. The impact is significant due to the potential for restricted service delivery and increased costs.",
+        "score": 9.0,
+        "priority": "Medium",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What specific internal controls are in place to monitor and adapt to changing cross-border data regulations?",
+          "How does the company quantify the potential cost impact of new data-related compliance obligations?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The text does not specify which jurisdictions pose the highest risk.",
+          "The text does not quantify the potential financial impact of non-compliance."
+        ]
+      },
+      {
+        "finding_id": "AI-08",
+        "title": "Government Contractual and Regulatory Risks",
+        "category": "compliance",
+        "basis": "ai_extraction",
+        "evidence": [
+          {
+            "paragraph_id": "1A-0083",
+            "section": "Item 1A. Risk Factors",
+            "quote": "If we do not satisfy contractual or regulatory requirements, we could be suspended or debarred as a governmental contractor, we could incur civil and criminal fines and penalties, and under certain circumstances contracts may be rescinded.",
+            "filing": {
+              "company": "MICROSOFT CORP",
+              "cik": "0000789019",
+              "form": "10-K",
+              "accession": "0001193125-26-323660",
+              "filed": "2026-07-29",
+              "period_end": "2026-06-30",
+              "url": "https://www.sec.gov/Archives/edgar/data/789019/000119312526323660/msft-20260630.htm",
+              "sic": "7372",
+              "sic_description": "Services-Prepackaged Software"
+            }
+          }
+        ],
+        "rejected_evidence": [],
+        "interpretation": "The company derives substantial revenue from government contracts, which are subject to unique audits, investigations, and stringent regulatory requirements. Failure to meet these obligations could lead to suspension, debarment, or contract rescission.",
+        "likelihood": 2,
+        "impact": 4,
+        "rationale": "While the company is a major contractor, the risk of suspension or debarment is unlikely but carries major consequences for revenue and reputation.",
+        "score": 8.0,
+        "priority": "Medium",
+        "confidence": "Low",
+        "confidence_reason": "Verified quote from only 1 paragraph",
+        "corroborated_by": [],
+        "follow_up_questions": [
+          "What percentage of total revenue is currently derived from government contracts?",
+          "How does the company manage the risk of periodic funding delays or cancellations in government contracts?"
+        ],
+        "limitations": [
+          "Based only on disclosure text in 10-K 0001193125-26-323660. Disclosures describe possible risks and do not confirm that events occurred.",
+          "Likelihood and impact are AI judgements and should be reviewed by a person.",
+          "The text does not specify the current status of any ongoing government audits.",
+          "The text does not quantify the revenue at risk from potential contract terminations."
+        ]
+      }
+    ],
+    "rejected": [
+      {
+        "title": "AI Model Unintended Consequences and Operational Policy Inconsistencies",
+        "category": "governance",
+        "reason": "None of the quotes could be verified against the filing text",
+        "rejected_evidence": [
+          {
+            "paragraph_id": "1A-0058",
+            "quote": "We have experienced, and expect to continue to experience, instances in which the AI solutions we enable or offer produce unintended consequences, are used or customized in unforeseen ways by customers or partners, or operate in a manner inconsistent with our responsible AI policies and practices.",
+            "reason": "Quote does not appear in the filing text"
+          }
+        ]
+      }
+    ],
+    "warnings": [],
+    "prompt_tokens": 19831,
+    "output_tokens": 3508,
+    "models_used": [
+      "gemini-3.6-flash",
+      "gemini-3.1-flash-lite"
+    ]
+  },
   "data_notes": [],
   "warnings": [
-    "Item 3 (Legal Proceedings): very short section. It may say 'Not applicable' or refer to another document.",
-    "AI extraction was not run (switched off)"
+    "Item 3 (Legal Proceedings): very short section. It may say 'Not applicable' or refer to another document."
   ]
 }
