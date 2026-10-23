@@ -143,3 +143,13 @@ def test_hosted_secrets_become_environment_variables(outputs, monkeypatch):
     assert not at.exception
     assert os.environ.get("RISKLENS_TEST_SECRET") == "from-cloud"
     monkeypatch.delenv("RISKLENS_TEST_SECRET")
+
+
+def test_empty_register_explains_when_ai_was_not_run(outputs):
+    result = sample_result(with_ai=False).model_copy(update={"flags": []})
+    path = pipeline.save_result(result, outputs)
+    at = AppTest.from_file(APP, default_timeout=60).run()
+    at.selectbox[0].set_value(path)
+    button(at, "Open saved run").click().run()
+    assert not at.exception
+    assert "AI extraction was not run" in at.info[0].value

@@ -221,9 +221,14 @@ def kpis(rows, result, config):
                     help="Financial rules not assessed because required figures were not reported. Nothing is estimated.")
 
 
-def register_tab(rows, config):
+def register_tab(rows, config, result):
     if not rows:
-        st.info("No risks were raised for this filing.")
+        if result.extraction is None:
+            st.info("No financial rules were triggered, and AI extraction was not run for this analysis, "
+                    "so the filing's risk disclosures have not been reviewed. Run it again with AI switched "
+                    "on to extract operational risks from the text.")
+        else:
+            st.info("No financial rules were triggered and no AI finding passed the evidence check.")
         return
     c1, c2 = st.columns(2)
     categories = sorted({category_label(r.category) for r in rows})
@@ -395,7 +400,7 @@ else:
     kpis(rows, result, config)
     tabs = st.tabs(["Risk register", "Evidence", "Financials", "Coverage and limitations", "Report"])
     with tabs[0]:
-        register_tab(rows, config)
+        register_tab(rows, config, result)
     with tabs[1]:
         evidence_tab(rows)
     with tabs[2]:
